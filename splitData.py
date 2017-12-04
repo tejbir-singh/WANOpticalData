@@ -1,12 +1,15 @@
 import matplotlib.pyplot as plt
-import os
+import os, errno
 import glob
 import datetime
 import re
 import subprocess
+import numpy
 
-def calculateAverageQFactorForDay(date, qfac_lst):
-    return None
+
+def calculateAverageQFactorForDay(qfac_lst):
+    mean_qFac = numpy.mean(qfac_lst)
+    return mean_qFac
 
 # remember that strings in python are immutable (can't be changed)
 # https://stackoverflow.com/questions/3939361/remove-specific-characters-from-a-string-in-python
@@ -29,8 +32,22 @@ def getFileDateRange(fname):
         (dateString_lowerBound, dateString_upperBound) = (first_line_split[0][1:11], last_line_split[0][1:11])
         return (file_name, dateString_lowerBound, dateString_upperBound)
 
+def ensure_dir(file_path):
+    # the following line is wrong and will not work. why?
+    #directory = os.path.dirname(file_path)
+    try:
+        os.makedirs(file_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+
 
 def writeFile_date_AveQFactor(fileName, dateQFactor_dict):
+    # dir_path = os.path.dirname(os.path.realpath(__file__))
+    output_dir = os.path.join(os.getcwd(), 'splitData_out' )
+    if not os.path.exists(output_dir):
+        ensure_dir(output_dir)
     return None
 
 
@@ -40,7 +57,7 @@ def main():
 # loop over all the files containing our interval time window and Q-factors for each channel
     for filename in glob.glob('*.txt'):
         (fname, lowerBoundDate, upperBoundDate) = getFileDateRange(filename)
-        #print(fname, fsize, firstLine, lastLine)
+        #print(fname)
         with open(filename, 'r') as f:  # open the file and iterate over each line
             first_line = f.readline()
             firstLine_split = [x.strip() for x in first_line.split(',')]  # split the line based on the delimiter
@@ -72,11 +89,16 @@ def main():
                     q_factorLst.append(float(q_fac)) # we need to append the q-factor value of line already read in
                     #print(date_nextLine)
                     #print(begin_date)
-                    print(date_qFactorLstDict)
+                    #print(date_qFactorLstDict)
             else:
                 date_qFactorLstDict[begin_date.strftime('%Y-%m-%d')] = q_factorLst
                 del q_factorLst
-                print(date_qFactorLstDict)
+        # print(date_qFactorLstDict)
+        date_AveQFactorDict = {}
+        for key in date_qFactorLstDict:
+            date_AveQFactorDict[key] = calculateAverageQFactorForDay(date_qFactorLstDict[key])
+        writeFile_date_AveQFactor(fname, date_AveQFactorDict)
+                # create a new dictionary that stores keys along with average of Q-factor values
                 # write the dictionary to a file
         #print(date_qFactorLstDict)
 
